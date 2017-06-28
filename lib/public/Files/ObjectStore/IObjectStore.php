@@ -20,6 +20,7 @@
  *
  */
 namespace OCP\Files\ObjectStore;
+use OCP\Files\Cache\ICacheEntry;
 
 /**
  * Interface IObjectStore
@@ -57,6 +58,12 @@ interface IObjectStore {
 	 * @throws \Exception when something goes wrong, message will be logged
 	 * @since 7.0.0
 	 */
-	 function deleteObject($urn);
+	function deleteObject($urn);
 
+	/**
+	 * @param string $path
+	 * @return string mixed
+	 * @since 10.1.0
+	 */
+	function getDirectDownload($urn);
 }

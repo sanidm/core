@@ -410,4 +410,12 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 	public function hasUpdated($path, $time) {
 		return false;
 	}
+
+	public function getDirectDownload($path) {
+		$path = $this->normalizePath($path);
+		$stat = $this->stat($path);
+
+		return $this->objectStore->getDirectDownload($this->getURN($stat['fileid']));
+	}
+
 }
