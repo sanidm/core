@@ -186,7 +186,7 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 				return $this->rmdir($path);
 			}
 			try {
-				$this->objectStore->deleteObject($this->getURN($stat['fileid']));
+				$this->objectStore->deleteObject($this->getURN($stat));
 			} catch (\Exception $ex) {
 				if ($ex->getCode() !== 404) {
 					\OCP\Util::writeLog('objectstore', 'Could not delete object: ' . $ex->getMessage(), \OCP\Util::ERROR);
@@ -216,12 +216,13 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 	 * The default implementations just appends the fileId to 'urn:oid:'. Make sure the URN is unique over all users.
 	 * You may need a mapping table to store your URN if it cannot be generated from the fileid.
 	 *
-	 * @param int $fileId the fileid
+	 * @param array $stat all
 	 * @return null|string the unified resource name used to identify the object
 	 */
-	protected function getURN($fileId) {
-		if (is_numeric($fileId)) {
-			return $this->objectPrefix . $fileId;
+	protected function getURN($stat) {
+		$stat = $stat['etag'];
+		if (is_string($stat) && $stat !== '') {
+			return $this->objectPrefix . $stat;
 		}
 		return null;
 	}
@@ -265,7 +266,7 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 				$stat = $this->stat($path);
 				if (is_array($stat)) {
 					try {
-						return $this->objectStore->readObject($this->getURN($stat['fileid']));
+						return $this->objectStore->readObject($this->getURN($stat));
 					} catch (\Exception $ex) {
 						\OCP\Util::writeLog('objectstore', 'Could not get object: ' . $ex->getMessage(), \OCP\Util::ERROR);
 						return false;
@@ -355,10 +356,10 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 				'storage_mtime' => $mtime,
 				'permissions' => \OCP\Constants::PERMISSION_ALL - \OCP\Constants::PERMISSION_CREATE,
 			];
-			$fileId = $this->getCache()->put($path, $stat);
+			$stat['fileid'] = $this->getCache()->put($path, $stat);
 			try {
 				//read an empty file from memory
-				$this->objectStore->writeObject($this->getURN($fileId), fopen('php://memory', 'r'));
+				$this->objectStore->writeObject($this->getURN($stat), fopen('php://memory', 'r'));
 			} catch (\Exception $ex) {
 				$this->getCache()->remove($path);
 				\OCP\Util::writeLog('objectstore', 'Could not create object: ' . $ex->getMessage(), \OCP\Util::ERROR);
@@ -389,10 +390,10 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 		$stat['mimetype'] = \OC::$server->getMimeTypeDetector()->detect($tmpFile);
 		$stat['etag'] = $this->getETag($path);
 
-		$fileId = $this->getCache()->put($path, $stat);
+		$stat['fileid'] = $this->getCache()->put($path, $stat);
 		try {
 			//upload to object storage
-			$this->objectStore->writeObject($this->getURN($fileId), fopen($tmpFile, 'r'));
+			$this->objectStore->writeObject($this->getURN($stat), fopen($tmpFile, 'r'), $stat);
 		} catch (\Exception $ex) {
 			$this->getCache()->remove($path);
 			\OCP\Util::writeLog('objectstore', 'Could not create object: ' . $ex->getMessage(), \OCP\Util::ERROR);
@@ -415,7 +416,7 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 		$path = $this->normalizePath($path);
 		$stat = $this->stat($path);
 
-		return $this->objectStore->getDirectDownload($this->getURN($stat['fileid']));
+		return $this->objectStore->getDirectDownload($this->getURN($stat));
 	}
 
 }
