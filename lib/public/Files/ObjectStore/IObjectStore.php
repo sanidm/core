@@ -47,10 +47,11 @@ interface IObjectStore {
 	/**
 	 * @param string $urn the unified resource name used to identify the object
 	 * @param resource $stream stream with the data to write
+	 * @param array $stat
 	 * @throws \Exception when something goes wrong, message will be logged
 	 * @since 7.0.0
 	 */
-	function writeObject($urn, $stream);
+	function writeObject($urn, $stream, $stat = []);
 
 	/**
 	 * @param string $urn the unified resource name used to identify the object

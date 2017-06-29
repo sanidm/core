@@ -220,9 +220,18 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 	 * @return null|string the unified resource name used to identify the object
 	 */
 	protected function getURN($stat) {
-		$stat = $stat['etag'];
-		if (is_string($stat) && $stat !== '') {
-			return $this->objectPrefix . $stat;
+		if (isset($stat['md5'])) {
+			return $this->objectPrefix . $stat['md5'];
+		}
+		if (isset($stat['checksum'])) {
+			$sums = explode(' ', $stat['checksum']);
+			foreach ($sums as $checksum) {
+				// starts with $algoPrefix
+				list($algo, $value) = explode(':', $checksum);
+				if ($algo === 'MD5') {
+					return $this->objectPrefix . $value;
+				}
+			}
 		}
 		return null;
 	}
@@ -389,6 +398,7 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 		$stat['storage_mtime'] = $mTime;
 		$stat['mimetype'] = \OC::$server->getMimeTypeDetector()->detect($tmpFile);
 		$stat['etag'] = $this->getETag($path);
+		$stat['md5'] = hash_file('md5', $tmpFile);
 
 		$stat['fileid'] = $this->getCache()->put($path, $stat);
 		try {
