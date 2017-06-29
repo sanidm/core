@@ -24,6 +24,7 @@
 namespace OC\Files\ObjectStore;
 
 use Guzzle\Http\Exception\ClientErrorResponseException;
+use OCP\Files\Cache\ICacheEntry;
 use OCP\Files\ObjectStore\IObjectStore;
 use OpenCloud\OpenStack;
 use OpenCloud\Rackspace;
@@ -151,4 +152,9 @@ class Swift implements IObjectStore {
 		$this->container->delete($recursive);
 	}
 
+	function getDirectDownload($urn) {
+		$this->init();
+		$object = $this->container->getObject($urn);
+		return $object->getTemporaryUrl(20*60, 'GET');
+	}
 }
