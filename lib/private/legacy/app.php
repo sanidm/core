@@ -127,7 +127,7 @@ class OC_App {
 		if (is_null($types) || in_array('authentication', $types)) {
 			if (\OC::$server->getUserSession()) {
 				$davUser = \OC::$server->getUserSession()->getSession()->get(\OCA\DAV\Connector\Sabre\Auth::DAV_AUTHENTICATED);
-				if (is_null($davUser)) {
+				if (!is_null($davUser)) {
 					\OC::$server->getUserSession()->validateSession();
 				}
 			}
