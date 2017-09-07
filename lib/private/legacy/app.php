@@ -126,7 +126,26 @@ class OC_App {
 		// once all authentication apps are loaded we can validate the session
 		if (is_null($types) || in_array('authentication', $types)) {
 			if (\OC::$server->getUserSession()) {
-				\OC::$server->getUserSession()->validateSession();
+				$davUser = \OC::$server->getUserSession()->getSession()->get(\OCA\DAV\Connector\Sabre\Auth::DAV_AUTHENTICATED);
+				if (is_null($davUser)) {
+					\OC::$server->getUserSession()->validateSession();
+				} else {
+					$request = \OC::$server->getRequest();
+					$userSession = \OC::$server->getUserSession();
+					/** @var \OC\Authentication\Token\DefaultTokenProvider $tokenProvider */
+					$tokenProvider = \OC::$server->query('\OC\Authentication\Token\DefaultTokenProvider');
+					$token = null;
+					try {
+						$token = $tokenProvider->getToken($userSession->getSession()->getId());
+					} catch (\Exception $ex) {
+
+						$userSession->createSessionToken($request, $userSession->getUser()->getUID(), $userSession->getLoginName(), $_SERVER['PHP_AUTH_PW']);
+					}
+
+					if ($token) {
+						$tokenProvider->updateToken($token);
+					}
+				}
 			}
 		}
 
