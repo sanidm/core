@@ -138,8 +138,12 @@ class OC_App {
 					try {
 						$token = $tokenProvider->getToken($userSession->getSession()->getId());
 					} catch (\Exception $ex) {
+						$password = null;
+						if (isset($_SERVER['PHP_AUTH_PW'])) {
+							$password = $_SERVER['PHP_AUTH_PW'];
+						}
 
-						$userSession->createSessionToken($request, $userSession->getUser()->getUID(), $userSession->getLoginName(), $_SERVER['PHP_AUTH_PW']);
+						$userSession->createSessionToken($request, $userSession->getUser()->getUID(), $userSession->getLoginName(), $password);
 					}
 
 					if ($token) {
