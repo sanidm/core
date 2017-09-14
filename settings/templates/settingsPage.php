@@ -23,11 +23,18 @@ style('settings', 'settings');
 		<li class="divider"><?php p($l->t('Personal')); ?></li>
 		<?php foreach($_['personalNav'] as $item) {
 			$active = $item['active'] ? ' active ' : '';
+
+			$ocUrlorIcon = \OCP\Util::sanitizeHTML($item['icon']);
+			if (strpos($item['icon'], '/', 1) !== false) {
+				$ocUrlorIcon = '" style="background-image: url(\'' . $ocUrlorIcon . '\')';
+			} else {
+				$ocUrlorIcon = 'icon-' . $ocUrlorIcon;
+			}
 			print_unescaped(
 				sprintf(
 					"<li><a class=\"svg %s %s\" href='%s'>%s</a></li>",
 					$active,
-					'icon-'.\OCP\Util::sanitizeHTML($item['icon']),
+					$ocUrlorIcon,
 					\OCP\Util::sanitizeHTML($item['link']),
 					\OCP\Util::sanitizeHTML($item['name'])
 				)
@@ -40,11 +47,17 @@ style('settings', 'settings');
 
 			foreach ($_['adminNav'] as $item) {
 				$active = $item['active'] ? ' active ' : '';
+				$ocUrlorIcon = \OCP\Util::sanitizeHTML($item['icon']);
+				if (strpos($item['icon'], '/', 1) !== false) {
+					$ocUrlorIcon = '" style="background-image: url(\'' . $ocUrlorIcon . '\')';
+				} else {
+					$ocUrlorIcon = 'icon-' . $ocUrlorIcon;
+				}
 				print_unescaped(
 					sprintf(
 						"<li><a class=\"svg %s %s\" href='%s'>%s</a></li>",
 						$active,
-						'icon-'.\OCP\Util::sanitizeHTML($item['icon']),
+						$ocUrlorIcon,
 						\OCP\Util::sanitizeHTML($item['link']),
 						\OCP\Util::sanitizeHTML($item['name'])
 					)

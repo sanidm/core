@@ -117,6 +117,16 @@ class SettingsPageController extends Controller {
 		$nav = [];
 		// Iterate through sections and get id, name and see if currently active
 		foreach($sections as $section) {
+
+			$icon = $section->getIconName() . '.svg';
+			$appPath = \OC_App::getAppPath($section->getID());
+
+			if (file_exists($appPath . '/img/' . $icon)) {
+				$icon = \OC::$server->getURLGenerator()->imagePath($section->getID(), $icon);
+			} else {
+				$icon = $section->getIconName();
+			}
+
 			$nav[] = [
 				'id' => $section->getID(),
 				'link' => $this->urlGenerator->linkToRoute(
@@ -125,7 +135,7 @@ class SettingsPageController extends Controller {
 				),
 				'name' => ucfirst($section->getName()),
 				'active' => $section->getID() === $currentSectionID,
-				'icon' => $section->getIconName()
+				'icon' => $icon
 			];
 		}
 		return $nav;
