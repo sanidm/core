@@ -47,6 +47,7 @@
 namespace OC\Files;
 
 use Icewind\Streams\CallbackWrapper;
+use OC\Files\Cache\CacheEntry;
 use OC\Files\Mount\MoveableMount;
 use OC\Files\Storage\Storage;
 use OC\User\RemoteUser;
@@ -57,6 +58,7 @@ use OCP\Files\InvalidCharacterInPathException;
 use OCP\Files\InvalidPathException;
 use OCP\Files\NotFoundException;
 use OCP\Files\ReservedWordException;
+use OCP\Files\Storage\IVersionedStorage;
 use OCP\IUser;
 use OCP\Lock\ILockingProvider;
 use OCP\Lock\LockedException;
@@ -1344,6 +1346,13 @@ class View {
 			$data = $this->getCacheEntry($storage, $internalPath, $relativePath);
 
 			if (!$data instanceof ICacheEntry) {
+//				if ($storage->instanceOfStorage(IVersionedStorage::class)) {
+//					$internalPath = dirname($internalPath);
+//					$relativePath = dirname($relativePath);
+//					$data = $this->getCacheEntry($storage, $internalPath, $relativePath);
+//				} else {
+//					return false;
+//				}
 				return false;
 			}
 
@@ -1408,7 +1417,19 @@ class View {
 			}
 
 			$folderId = $data['fileid'];
-			$contents = $cache->getFolderContentsById($folderId); //TODO: mimetype_filter
+			if ($storage->instanceOfStorage(IVersionedStorage::class) &&
+				$data->getMimetype() !== 'httpd/unix-directory') {
+				/** @var IVersionedStorage $storage */
+				$contents = $storage->getVersions('admin', $internalPath);
+				$contents = array_map(function($element) use ($folderId) {
+					$element['fileid'] = null;
+					$element['name'] = $element['version'];
+					$element['permissions'] = Constants::PERMISSION_ALL;
+					return new CacheEntry($element);
+				}, $contents);
+			} else {
+				$contents = $cache->getFolderContentsById($folderId); //TODO: mimetype_filter
+			}
 
 			$sharingDisabled = Util::isSharingDisabledForUser();
 			/**

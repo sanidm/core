@@ -67,4 +67,6 @@ interface IObjectStore {
 	 * @since 10.1.0
 	 */
 	function getDirectDownload($urn);
+
+	function getVersions($urn);
 }

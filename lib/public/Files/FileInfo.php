@@ -252,4 +252,12 @@ interface FileInfo {
 	 * @since 9.0.0
 	 */
 	public function getChecksum();
+
+	/**
+	 * Get the version id
+	 *
+	 * @return string
+	 * @since 10.0.4
+	 */
+//	public function getVersionId();
 }

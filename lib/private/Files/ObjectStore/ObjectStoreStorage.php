@@ -28,8 +28,9 @@ namespace OC\Files\ObjectStore;
 use Icewind\Streams\IteratorDirectory;
 use OC\Files\Cache\CacheEntry;
 use OCP\Files\ObjectStore\IObjectStore;
+use OCP\Files\Storage\IVersionedStorage;
 
-class ObjectStoreStorage extends \OC\Files\Storage\Common {
+class ObjectStoreStorage extends \OC\Files\Storage\Common implements IVersionedStorage {
 
 	/**
 	 * @var array
@@ -220,6 +221,8 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 	 * @return null|string the unified resource name used to identify the object
 	 */
 	protected function getURN($stat) {
+		return $this->objectPrefix . $stat['fileid'];
+
 		if (isset($stat['md5'])) {
 			return $this->objectPrefix . $stat['md5'];
 		}
@@ -429,4 +432,21 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 		return $this->objectStore->getDirectDownload($this->getURN($stat));
 	}
 
+	/**
+	 * @param string $uid
+	 * @param string $path
+	 * @return mixed
+	 */
+	public function getVersions($uid, $path) {
+		$path = $this->normalizePath($path);
+		$stat = $this->stat($path);
+		$versions = $this->objectStore->getVersions($this->getURN($stat));
+
+		return array_map(function ($v) {
+			list(,,$fileid) = explode(':', $v['oid']);
+			$data = $this->getCache()->get((int)$fileid);
+			$v['path'] = $data->getPath();
+			return $v;
+		}, $versions);
+	}
 }

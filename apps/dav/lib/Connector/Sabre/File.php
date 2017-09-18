@@ -54,11 +54,14 @@ use Sabre\DAV\Exception\BadRequest;
 use Sabre\DAV\Exception\Forbidden;
 use Sabre\DAV\Exception\NotImplemented;
 use Sabre\DAV\Exception\ServiceUnavailable;
+use Sabre\DAV\ICollection;
 use Sabre\DAV\IFile;
 use Sabre\DAV\Exception\NotFound;
 use OC\AppFramework\Http\Request;
+use Sabre\DAV\INode;
+use Sabre\DAV\SimpleFile;
 
-class File extends Node implements IFile {
+class File extends Node implements IFile, ICollection {
 
 	protected $request;
 	
@@ -642,5 +645,97 @@ class File extends Node implements IFile {
 
 	protected function header($string) {
 		\header($string);
+	}
+
+	/**
+	 * Creates a new file in the directory
+	 *
+	 * Data will either be supplied as a stream resource, or in certain cases
+	 * as a string. Keep in mind that you may have to support either.
+	 *
+	 * After successful creation of the file, you may choose to return the ETag
+	 * of the new file here.
+	 *
+	 * The returned ETag must be surrounded by double-quotes (The quotes should
+	 * be part of the actual string).
+	 *
+	 * If you cannot accurately determine the ETag, you should not return it.
+	 * If you don't store the file exactly as-is (you're transforming it
+	 * somehow) you should also not return an ETag.
+	 *
+	 * This means that if a subsequent GET to this new file does not exactly
+	 * return the same contents of what was submitted here, you are strongly
+	 * recommended to omit the ETag.
+	 *
+	 * @param string $name Name of the file
+	 * @param resource|string $data Initial payload
+	 * @return null|string
+	 */
+	function createFile($name, $data = null) {
+		throw new Exception\Forbidden('Permission denied to create file (filename ' . $name . ')');
+	}
+
+	/**
+	 * Creates a new subdirectory
+	 *
+	 * @param string $name
+	 * @return void
+	 */
+	function createDirectory($name) {
+		throw new Exception\Forbidden('Permission denied to create file (filename ' . $name . ')');
+	}
+
+	/**
+	 * Returns a specific child node, referenced by its name
+	 *
+	 * This method must throw Sabre\DAV\Exception\NotFound if the node does not
+	 * exist.
+	 *
+	 * @param string $name
+	 * @return INode
+	 */
+	function getChild($name) {
+		foreach ($this->getChildren() as $child) {
+
+			if ($child->getName() === $name) return $child;
+
+		}
+		throw new Exception\NotFound('File not found: ' . $name);
+	}
+
+	/**
+	 * Returns an array with all the child nodes
+	 *
+	 * @return INode[]
+	 */
+	function getChildren() {
+		$folderContent = $this->fileView->getDirectoryContent($this->path);
+		return array_map(function($info) {
+			return new File($this->fileView, $info, $this->shareManager);
+		}, $folderContent);
+//		return [
+//			new SimpleFile('1', '1', ''),
+//			new SimpleFile('2', '2'),
+//			new SimpleFile('3', '3'),
+//		];
+	}
+
+	/**
+	 * Checks if a child-node with the specified name exists
+	 *
+	 * @param string $name
+	 * @return bool
+	 */
+	function childExists($name) {
+		try {
+
+			$this->getChild($name);
+			return true;
+
+		} catch (Exception\NotFound $e) {
+
+			return false;
+
+		}
 	}
 }

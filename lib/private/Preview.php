@@ -395,9 +395,7 @@ class Preview {
 	public function deletePreview() {
 		$fileInfo = $this->getFileInfo();
 		if ($fileInfo !== null && $fileInfo !== false) {
-			$fileId = $fileInfo->getId();
-
-			$previewPath = $this->buildCachePath($fileId);
+			$previewPath = $this->buildCachePath();
 			if (!strpos($previewPath, 'max')) {
 				return $this->userView->unlink($previewPath);
 			}
@@ -425,7 +423,7 @@ class Preview {
 				// getId() might return null, e.g. when the file is a
 				// .ocTransferId*.part file from chunked file upload.
 				if (!empty($fileId)) {
-					$previewPath = $this->getPreviewPath($fileId);
+					$previewPath = $this->getPreviewPath();
 					$this->userView->rmdir($previewPath);
 				}
 			}
@@ -443,11 +441,10 @@ class Preview {
 	 * thumbnail should be
 	 *    * And finally, we look for a suitable candidate in the cache
 	 *
-	 * @param int $fileId fileId of the original file we need a preview of
-	 *
 	 * @return string|false path to the cached preview if it exists or false
 	 */
-	public function isCached($fileId) {
+	public function isCached() {
+		$fileId = $this->getFileInfo()->getId();
 		if (is_null($fileId)) {
 			return false;
 		}
@@ -455,7 +452,7 @@ class Preview {
 		/**
 		 * Phase 1: Looking for the max preview
 		 */
-		$previewPath = $this->getPreviewPath($fileId);
+		$previewPath = $this->getPreviewPath();
 		// We currently can't look for a single file due to bugs related to #16478
 		$allThumbnails = $this->userView->getDirectoryContent($previewPath);
 		list($maxPreviewWidth, $maxPreviewHeight) = $this->getMaxPreviewSize($allThumbnails);
@@ -482,7 +479,7 @@ class Preview {
 			 */
 			// This gives us a calculated path to a preview of asked dimensions
 			// thumbnailFolder/fileId/<maxX>-<maxY>(-max|-with-aspect).png
-			$preview = $this->buildCachePath($fileId, $previewWidth, $previewHeight);
+			$preview = $this->buildCachePath($previewWidth, $previewHeight);
 
 			// This checks if we have a preview of those exact dimensions in the cache
 			if ($this->thumbnailSizeExists($allThumbnails, basename($preview))) {
@@ -497,11 +494,11 @@ class Preview {
 			) {
 				// The preview we-re looking for is the exact size or larger than the max preview,
 				// so return that
-				return $this->buildCachePath($fileId, $maxPreviewWidth, $maxPreviewHeight);
+				return $this->buildCachePath($maxPreviewWidth, $maxPreviewHeight);
 			} else {
 				// The last resort is to look for something bigger than what we've calculated,
 				// but still smaller than the max preview
-				return $this->isCachedBigger($fileId, $allThumbnails);
+				return $this->isCachedBigger($allThumbnails);
 			}
 		}
 
@@ -648,12 +645,11 @@ class Preview {
 	 * Checks if a bigger version of a file preview is cached and if not
 	 * return the preview of max allowed dimensions
 	 *
-	 * @param int $fileId fileId of the original image
 	 * @param FileInfo[] $allThumbnails the list of all our cached thumbnails
 	 *
 	 * @return string path to bigger thumbnail
 	 */
-	private function isCachedBigger($fileId, $allThumbnails) {
+	private function isCachedBigger($allThumbnails) {
 		// This is used to eliminate any thumbnail narrower than what we need
 		$maxX = $this->getMaxX();
 
@@ -669,7 +665,7 @@ class Preview {
 		}
 
 		// At this stage, we didn't find a preview, so we return the max preview
-		return $this->buildCachePath($fileId, $this->maxPreviewWidth, $this->maxPreviewHeight);
+		return $this->buildCachePath($this->maxPreviewWidth, $this->maxPreviewHeight);
 	}
 
 	/**
@@ -766,14 +762,13 @@ class Preview {
 			return new \OC_Image();
 		}
 
-		$fileId = $fileInfo->getId();
-		$cached = $this->isCached($fileId);
+		$cached = $this->isCached();
 		if ($cached) {
-			$this->getCachedPreview($fileId, $cached);
+			$this->getCachedPreview($cached);
 		}
 
 		if (is_null($this->preview)) {
-			$this->generatePreview($fileId);
+			$this->generatePreview();
 		}
 
 		// We still don't have a preview, so we send back an empty object
@@ -813,10 +808,9 @@ class Preview {
 	/**
 	 * Retrieves the preview from the cache and resizes it if necessary
 	 *
-	 * @param int $fileId fileId of the original image
 	 * @param string $cached the path to the cached preview
 	 */
-	private function getCachedPreview($fileId, $cached) {
+	private function getCachedPreview($cached) {
 		$stream = $this->userView->fopen($cached, 'r');
 		$this->preview = null;
 		if ($stream) {
@@ -835,7 +829,7 @@ class Preview {
 
 				// We don't have an exact match
 				if ($previewX !== $maxX || $previewY !== $maxY) {
-					$this->resizeAndStore($fileId);
+					$this->resizeAndStore();
 				}
 			}
 
@@ -845,10 +839,8 @@ class Preview {
 
 	/**
 	 * Resizes, crops, fixes orientation and stores in the cache
-	 *
-	 * @param int $fileId fileId of the original image
 	 */
-	private function resizeAndStore($fileId) {
+	private function resizeAndStore() {
 		$image = $this->preview;
 		if (!($image instanceof \OCP\IImage)) {
 			\OCP\Util::writeLog(
@@ -885,7 +877,7 @@ class Preview {
 
 		// The preview has been resized and should now have the asked dimensions
 		if ($newPreviewWidth === $askedWidth && $newPreviewHeight === $askedHeight) {
-			$this->storePreview($fileId, $newPreviewWidth, $newPreviewHeight);
+			$this->storePreview($newPreviewWidth, $newPreviewHeight);
 
 			return;
 		}
@@ -897,7 +889,7 @@ class Preview {
 		// It turns out the scaled preview is now too big, so we crop the image
 		if ($newPreviewWidth >= $askedWidth && $newPreviewHeight >= $askedHeight) {
 			$this->crop($image, $askedWidth, $askedHeight, $newPreviewWidth, $newPreviewHeight);
-			$this->storePreview($fileId, $askedWidth, $askedHeight);
+			$this->storePreview($askedWidth, $askedHeight);
 
 			return;
 		}
@@ -908,13 +900,13 @@ class Preview {
 			$this->cropAndFill(
 				$image, $askedWidth, $askedHeight, $newPreviewWidth, $newPreviewHeight
 			);
-			$this->storePreview($fileId, $askedWidth, $askedHeight);
+			$this->storePreview($askedWidth, $askedHeight);
 
 			return;
 		}
 
 		// The preview is smaller, but we can't touch it
-		$this->storePreview($fileId, $newPreviewWidth, $newPreviewHeight);
+		$this->storePreview($newPreviewWidth, $newPreviewHeight);
 	}
 
 	/**
@@ -1038,11 +1030,10 @@ class Preview {
 	 *
 	 * Do not nullify the preview as it might send the whole process in a loop
 	 *
-	 * @param int $fileId fileId of the original image
 	 * @param int $previewWidth
 	 * @param int $previewHeight
 	 */
-	private function storePreview($fileId, $previewWidth, $previewHeight) {
+	private function storePreview($previewWidth, $previewHeight) {
 		if (empty($previewWidth) || empty($previewHeight)) {
 			\OCP\Util::writeLog(
 				'core', 'Cannot save preview of dimension ' . $previewWidth . 'x' . $previewHeight,
@@ -1050,7 +1041,7 @@ class Preview {
 			);
 
 		} else {
-			$cachePath = $this->buildCachePath($fileId, $previewWidth, $previewHeight);
+			$cachePath = $this->buildCachePath($previewWidth, $previewHeight);
 			$this->userView->file_put_contents($cachePath, $this->preview->data());
 		}
 	}
@@ -1058,13 +1049,12 @@ class Preview {
 	/**
 	 * Returns the path to a preview based on its dimensions and aspect
 	 *
-	 * @param int $fileId
 	 * @param int|null $maxX
 	 * @param int|null $maxY
 	 *
 	 * @return string
 	 */
-	private function buildCachePath($fileId, $maxX = null, $maxY = null) {
+	private function buildCachePath($maxX = null, $maxY = null) {
 		if (is_null($maxX)) {
 			$maxX = $this->getMaxX();
 		}
@@ -1072,7 +1062,7 @@ class Preview {
 			$maxY = $this->getMaxY();
 		}
 
-		$previewPath = $this->getPreviewPath($fileId);
+		$previewPath = $this->getPreviewPath();
 		$previewPath = $previewPath . strval($maxX) . '-' . strval($maxY);
 		$isMaxPreview =
 			($maxX === $this->maxPreviewWidth && $maxY === $this->maxPreviewHeight) ? true : false;
@@ -1093,11 +1083,15 @@ class Preview {
 	/**
 	 * Returns the path to the folder where the previews are stored, identified by the fileId
 	 *
-	 * @param int $fileId
-	 *
 	 * @return string
 	 */
-	private function getPreviewPath($fileId) {
+	private function getPreviewPath() {
+		$fileId = $this->getFileInfo()->getId();
+		// TODO: add file version
+		if (isset($this->getFileInfo()['version'])) {
+			$fileId .= '/';
+			$fileId .= $this->getFileInfo()['version'];
+		}
 		return $this->getThumbnailsFolder() . '/' . $fileId . '/';
 	}
 
@@ -1111,9 +1105,8 @@ class Preview {
 	 * We never upscale the original conversion as this will be done later by the resizing
 	 * operation
 	 *
-	 * @param int $fileId fileId of the original image
 	 */
-	private function generatePreview($fileId) {
+	private function generatePreview() {
 		$file = $this->getFile();
 		$preview = null;
 
@@ -1146,7 +1139,7 @@ class Preview {
 				}
 
 				$this->preview = $preview;
-				$previewPath = $this->getPreviewPath($fileId);
+				$previewPath = $this->getPreviewPath();
 
 				if ($this->userView->is_dir($this->getThumbnailsFolder() . '/') === false) {
 					$this->userView->mkdir($this->getThumbnailsFolder() . '/');
@@ -1165,7 +1158,7 @@ class Preview {
 
 		// The providers have been kind enough to give us a preview
 		if ($preview) {
-			$this->resizeAndStore($fileId);
+			$this->resizeAndStore();
 		}
 	}
 

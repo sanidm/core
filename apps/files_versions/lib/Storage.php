@@ -46,6 +46,7 @@ use OC\Files\View;
 use OCA\Files_Versions\AppInfo\Application;
 use OCA\Files_Versions\Command\Expire;
 use OCP\Files\NotFoundException;
+use OCP\Files\Storage\IVersionedStorage;
 use OCP\Lock\ILockingProvider;
 use OCP\User;
 
@@ -182,17 +183,22 @@ class Storage {
 			if ($files_view->filesize($filename) === 0) {
 				return false;
 			}
+			list($storage, $path) = $files_view->resolvePath($filename);
+			/** @var \OC\Files\Storage\Storage $storage */
+			if ($storage->instanceOfStorage(IVersionedStorage::class)) {
+//				$storage->saveCurrent
+			} else {
+				// create all parent folders
+				self::createMissingDirectories($filename, $users_view);
 
-			// create all parent folders
-			self::createMissingDirectories($filename, $users_view);
+				self::scheduleExpire($uid, $filename);
 
-			self::scheduleExpire($uid, $filename);
-
-			// store a new version of a file
-			$mtime = $users_view->filemtime('files/' . $filename);
-			$users_view->copy('files/' . $filename, 'files_versions/' . $filename . '.v' . $mtime);
-			// call getFileInfo to enforce a file cache entry for the new version
-			$users_view->getFileInfo('files_versions/' . $filename . '.v' . $mtime);
+				// store a new version of a file
+				$mtime = $users_view->filemtime('files/' . $filename);
+				$users_view->copy('files/' . $filename, 'files_versions/' . $filename . '.v' . $mtime);
+				// call getFileInfo to enforce a file cache entry for the new version
+				$users_view->getFileInfo('files_versions/' . $filename . '.v' . $mtime);
+			}
 		}
 	}
 
@@ -424,6 +430,15 @@ class Storage {
 		if (empty($filename)) {
 			return $versions;
 		}
+
+		$files_view = new View('/'.$uid .'/files');
+		list($storage, $path) = $files_view->resolvePath($filename);
+		/** @var \OC\Files\Storage\Storage $storage */
+		if ($storage->instanceOfStorage(IVersionedStorage::class)) {
+			/** @var IVersionedStorage $storage */
+			return $storage->getVersions($uid, $path);
+		}
+
 		// fetch for old versions
 		$view = new View('/' . $uid . '/');
 

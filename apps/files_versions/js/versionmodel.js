@@ -55,7 +55,7 @@
 			var url = OC.generateUrl('/apps/files_versions/preview');
 			var params = {
 				file: this.get('fullPath'),
-				version: this.get('timestamp')
+				version: this.get('version')
 			};
 			return url + '?' + OC.buildQueryString(params);
 		},
@@ -64,7 +64,7 @@
 			var url = OC.generateUrl('/apps/files_versions/download.php');
 			var params = {
 				file: this.get('fullPath'),
-				revision: this.get('timestamp')
+				revision: this.get('version')
 			};
 			return url + '?' + OC.buildQueryString(params);
 		}
