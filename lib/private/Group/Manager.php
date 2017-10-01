@@ -158,6 +158,7 @@ class Manager extends PublicEmitter implements IGroupManager {
 	 * @return \OCP\IGroup
 	 */
 	protected function getGroupObject($gid, $displayName = null) {
+		// TODO: Use GroupMapper->getGroup($gid)
 		$backends = [];
 		foreach ($this->backends as $backend) {
 			if ($backend->implementsActions(\OC\Group\Backend::GROUP_DETAILS)) {
@@ -193,6 +194,7 @@ class Manager extends PublicEmitter implements IGroupManager {
 	 * @return \OC\Group\Group
 	 */
 	public function createGroup($gid) {
+		// TODO: Use createBackendGroup($gid, $backendClass) and GroupMapper->insert(Entity $entity)
 		if ($gid === '' || is_null($gid)) {
 			return false;
 		} else if ($group = $this->get($gid)) {
@@ -211,21 +213,6 @@ class Manager extends PublicEmitter implements IGroupManager {
 		}
 	}
 
-
-	/**
-	 * @param string $gid
-	 * @param string $backendClass
-	 * @return BackendGroup|\OCP\AppFramework\Db\Entity
-	 */
-	private function createBackendGroup($gid, $backendClass) {
-		$account = new BackendGroup();
-		$account->setGroupId($gid);
-		$account->setDisplayName($gid);
-		$account->setBackend($backendClass);
-		$account = $this->groupMapper->insert($account);
-		return $account;
-	}
-
 	/**
 	 * @param string $search search string
 	 * @param int|null $limit limit
@@ -234,6 +221,7 @@ class Manager extends PublicEmitter implements IGroupManager {
 	 * @return \OC\Group\Group[] groups
 	 */
 	public function search($search, $limit = null, $offset = null, $scope = null) {
+		// TODO: use GroupMapper->search($fieldName, $pattern, $limit, $offset)
 		$groups = [];
 		foreach ($this->backends as $backend) {
 			if (!$backend->isVisibleForScope($scope)) {
@@ -310,6 +298,7 @@ class Manager extends PublicEmitter implements IGroupManager {
 		if (!isset($this->cachedUserGroups[$uid])) {
 			$groups = [];
 
+			// TODO: Use MembershipManager->getUserBackendGroups($userId) and convert to IGroup objects
 			foreach ($this->backends as $backend) {
 				$groupIds = $backend->getUserGroups($uid);
 				if (is_array($groupIds)) {
@@ -329,6 +318,7 @@ class Manager extends PublicEmitter implements IGroupManager {
 		}
 
 		// filter out groups that must be omitted for the given scope
+		// TODO: figure out what i this scope
 		return $this->filterExcludedBackendsForScope($groups, $scope);
 	}
 
@@ -342,13 +332,14 @@ class Manager extends PublicEmitter implements IGroupManager {
 	}
 
 	/**
-	 * Checks if a userId is in a group
+	 * Checks if a userId is in a group identified by gid
 	 * @param string $userId
-	 * @param string $group
+	 * @param string $gid
 	 * @return bool if in group
 	 */
-	public function isInGroup($userId, $group) {
-		return array_key_exists($group, $this->getUserIdGroups($userId));
+	public function isInGroup($userId, $gid) {
+		//TODO: Use MembershipManager->isGroupUser($userId, $gid)
+		return array_key_exists($gid, $this->getUserIdGroups($userId));
 	}
 
 	/**
@@ -358,6 +349,7 @@ class Manager extends PublicEmitter implements IGroupManager {
 	 * @return array with group ids
 	 */
 	public function getUserGroupIds($user, $scope = null) {
+		// TODO: Use MembershipManager->getUserBackendGroups($userId) and get id for each from backend group
 		return array_map(function($value) {
 			return (string) $value;
 		}, array_keys($this->getUserGroups($user, $scope)));
@@ -372,6 +364,7 @@ class Manager extends PublicEmitter implements IGroupManager {
 	 * @return \OC\User\User[]
 	 */
 	public function findUsersInGroup($gid, $search = '', $limit = -1, $offset = 0) {
+		// TODO: use MembershipManager->find($gid, $search, $searchLimit, $searchOffset)
 		$group = $this->get($gid);
 		if(is_null($group)) {
 			return [];
@@ -424,6 +417,7 @@ class Manager extends PublicEmitter implements IGroupManager {
 	 * @return array an array of display names (value) and user ids (key)
 	 */
 	public function displayNamesInGroup($gid, $search = '', $limit = -1, $offset = 0) {
+		// TODO: use MembershipManager->find($gid, $search, $searchLimit, $searchOffset)
 		$group = $this->get($gid);
 		if(is_null($group)) {
 			return [];
@@ -470,6 +464,7 @@ class Manager extends PublicEmitter implements IGroupManager {
 	 * @return \OC\SubAdmin
 	 */
 	public function getSubAdmin() {
+		// TODO: Adjust to use MembershipManager as this class will need it
 		if (!$this->subAdmin) {
 			$this->subAdmin = new \OC\SubAdmin(
 				$this->userManager,
@@ -482,11 +477,26 @@ class Manager extends PublicEmitter implements IGroupManager {
 	}
 
 	public function inGroup($uid, $gid) {
+		// TODO: Use MembershipManager->isGroupUser($userId, $gid)
 		$group = $this->get($gid);
 		$user = $this->userManager->get($uid);
 		if ($group and $user) {
 			return $group->inGroup($user);
 		}
 		return false;
+	}
+
+	/**
+	 * @param string $gid
+	 * @param string $backendClass
+	 * @return BackendGroup|\OCP\AppFramework\Db\Entity
+	 */
+	private function createBackendGroup($gid, $backendClass) {
+		$account = new BackendGroup();
+		$account->setGroupId($gid);
+		$account->setDisplayName($gid);
+		$account->setBackend($backendClass);
+		$account = $this->groupMapper->insert($account);
+		return $account;
 	}
 }

@@ -88,6 +88,7 @@ use OC\Theme\ThemeService;
 use OC\User\AccountMapper;
 use OC\User\AccountTermMapper;
 use OC\Group\GroupMapper;
+use OC\OrganisationManager;
 use OCP\IL10N;
 use OCP\ILogger;
 use OCP\IServerContainer;
@@ -230,11 +231,17 @@ class Server extends ServerContainer implements IServerContainer {
 				return $c->getRootFolder();
 			});
 		});
+		// TODO: help me reducing spaghetti by adding some abstraction layer with OrganisationManager
+		// TODO: remove me after finishing OrganisationManager
 		$this->registerService('AccountMapper', function(Server $c) {
 			return new AccountMapper($c->getConfig(), $c->getDatabaseConnection(), new AccountTermMapper($c->getDatabaseConnection()));
 		});
+		// TODO: remove me after finishing OrganisationManager
 		$this->registerService('GroupMapper', function(Server $c) {
 			return new GroupMapper($c->getDatabaseConnection());
+		});
+		$this->registerService('OrganisationManager', function(Server $c) {
+			return new OrganisationManager($c->getDatabaseConnection(), $c->getConfig(), $this->getUserManager(), $this->getGroupManager());
 		});
 		$this->registerService('UserManager', function (Server $c) {
 			$config = $c->getConfig();
@@ -970,6 +977,13 @@ class Server extends ServerContainer implements IServerContainer {
 	 */
 	public function getUserManager() {
 		return $this->query('UserManager');
+	}
+
+	/**
+	 * @return \OC\MembershipManager
+	 */
+	public function getOrganisationManager() {
+		return $this->query('MembershipManager');
 	}
 
 	/**

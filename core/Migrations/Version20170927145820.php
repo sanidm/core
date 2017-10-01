@@ -30,6 +30,7 @@ class Version20170927145820 implements ISchemaMigration {
 			'length' => 64,
 		]);
 		$table->setPrimaryKey(['id']);
+		$table->addUniqueIndex(['group_id']);
 
 		// Group Memberships Table
 		$table = $schema->createTable("{$prefix}memberships");

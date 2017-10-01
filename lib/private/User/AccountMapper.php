@@ -237,4 +237,15 @@ class AccountMapper extends Mapper {
 		$stmt->closeCursor();
 	}
 
+	/**
+	 * Creates an account from an attributes' array.
+	 * @param array $row the set of attributes which should be converted to an account
+	 * @return Account
+	 * @since 10.0.0
+	 */
+	public function mapToAccount($row) {
+		/** @var $account Account */
+		$account = parent::mapRowToEntity($row);
+		return $account;
+	}
 }

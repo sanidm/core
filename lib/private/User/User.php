@@ -180,11 +180,14 @@ class User implements IUser {
 	 * @return bool
 	 */
 	public function delete() {
+		// TODO: Use MembershipManager->removeMemberships($userId) and AccountMapper->delete to do the job
 		if ($this->emitter) {
 			$this->emitter->emit('\OC\User', 'preDelete', [$this]);
 		}
 		// get the home now because it won't return it after user deletion
 		$homePath = $this->getHome();
+
+		// TODO: with FK it will be BOOM
 		$this->mapper->delete($this->account);
 		$bi = $this->account->getBackendInstance();
 		if (!is_null($bi)) {
@@ -434,6 +437,8 @@ class User implements IUser {
 	}
 
 	public function triggerChange($feature, $value = null) {
+		// FIXME: Are we sure any backend is listening for it? Specifically User Backend so it will change the user internally ?
+		// FIXME: Changing displayname in user interface, and sync later, removes the change.
 		if ($this->emitter && in_array($feature, $this->account->getUpdatedFields())) {
 			$this->emitter->emit('\OC\User', 'changeUser', [$this, $feature, $value]);
 		}

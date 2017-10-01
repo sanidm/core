@@ -96,6 +96,8 @@ interface IGroupManager {
 	public function search($search, $limit = null, $offset = null, $scope = null);
 
 	/**
+	 * // TODO: Ask whether we can change parameter from IUser to user id $userId
+	 *
 	 * @param \OCP\IUser|null $user
 	 * @param string $scope
 	 * @return \OCP\IGroup[]
@@ -104,6 +106,8 @@ interface IGroupManager {
 	public function getUserGroups($user, $scope = null);
 
 	/**
+	 * TODO: Ask whether we can depreciate this (performance gain is very low, users usually are not members of millions of groups
+	 *
 	 * @param \OCP\IUser $user
 	 * @param string $scope
 	 * @return array with group names
@@ -144,13 +148,13 @@ interface IGroupManager {
 	public function isAdmin($userId);
 
 	/**
-	 * Checks if a userId is in a group
+	 * Checks if a userId is in a group identified by gid
 	 * @param string $userId
-	 * @param string $group
+	 * @param string $gid
 	 * @return bool if in group
 	 * @since 8.0.0
 	 */
-	public function isInGroup($userId, $group);
+	public function isInGroup($userId, $gid);
 
 	/**
 	 * Returns the sub admin manager
