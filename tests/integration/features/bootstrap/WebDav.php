@@ -108,6 +108,20 @@ trait WebDav {
 	}
 
 	/**
+	 * @When /^using old dav path$/
+	 */
+	public function whenUsingOldDavPath() {
+		$this->usingOldDavPath();
+	}
+
+	/**
+	 * @When /^using new dav path$/
+	 */
+	public function whenUsingNewDavPath() {
+		$this->usingNewDavPath();
+	}
+
+	/**
 	 * @When /^user "([^"]*)" moves (file|folder|entry) "([^"]*)" to "([^"]*)"$/
 	 * @param string $user
 	 * @param string $fileSource
