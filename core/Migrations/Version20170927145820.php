@@ -49,9 +49,8 @@ class Version20170927145820 implements ISchemaMigration {
 		// This set of values has to be unique
 		$table->addUniqueIndex(['backend_group_id', 'account_id', 'membership_type'], 'group_account_membership_index');
 
-		//TODO: Do it later since it requires changes here for Oracle https://github.com/owncloud/core/blob/master/lib/private/DB/OracleMigrator.php#L158-L160
 		// Add foreign keys on backend_group and accounts tables
-		//$table->addForeignKeyConstraint("{$prefix}backend_groups",array('backend_group_id'), array('id'));
-		//$table->addForeignKeyConstraint("{$prefix}accounts", array('account_id'), array('id'));
+		$table->addForeignKeyConstraint("{$prefix}backend_groups",array('backend_group_id'), array('id'));
+		$table->addForeignKeyConstraint("{$prefix}accounts", array('account_id'), array('id'));
     }
 }
